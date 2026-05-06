@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureBank - Virtual Banking System</title>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="email-service.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 24px 16px;
+        }
+
+        .container {
+            max-width: 980px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: #ffffff;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 36px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            opacity: 0.95;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 14px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+            padding: 24px;
+        }
+
+        .auth-section,
+        .dashboard-section {
+            display: none;
+        }
+
+        .auth-section.active,
+        .dashboard-section.active {
+            display: block;
+        }
+
+        .title {
+            color: #1f2937;
+            margin-bottom: 16px;
+        }
+
+        .mode-switch {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        button {
+            border: none;
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.15s ease, opacity 0.2s ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+        }
+
+        button:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .mode-btn {
+            background: #edf2f7;
+            color: #1f2937;
+        }
+
+        .mode-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff;
+        }
+
+        .primary-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .secondary-btn {
+            background: #eef2ff;
+            color: #3730a3;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .danger-btn {
+            background: #dc2626;
+            color: #ffffff;
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: #374151;
+            font-weight: 600;
+        }
+
+        .form-control {
+            width: 100%;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 11px 12px;
+            font-size: 14px;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #6366f1;
+        }
+
+        .alert {
+            display: none;
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 14px;
+            font-size: 14px;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert.error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+        }
+
+        .alert.success {
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            color: #065f46;
+        }
+
+        .demo {
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 10px;
+            background: #f3f4f6;
+            font-size: 13px;
+            color: #111827;
+            line-height: 1.6;
+        }
+
+        .dashboard-top {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 14px;
+        }
+
+        .dashboard-top h3 {
+            margin-bottom: 6px;
+            color: #111827;
+        }
+
+        .meta-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .meta-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff;
+            border-radius: 10px;
+            padding: 12px;
+        }
+
+        .meta-box small {
+            opacity: 0.9;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .meta-box strong {
+            font-size: 18px;
+        }
+
+        .dashboard-nav {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+
+        .tab-btn {
+            background: #edf2f7;
+            color: #1f2937;
+        }
+
+        .tab-btn.active {
+            background: #2563eb;
+            color: #ffffff;
+        }
+
+        .panel {
+            display: none;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 14px;
+        }
+
+        .panel.active {
+            display: block;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            border-bottom: 1px solid #e5e7eb;
+            text-align: left;
+            padding: 10px 8px;
+            font-size: 14px;
+        }
+
+        th {
+            background: #f9fafb;
+            color: #111827;
+        }
+
+        .debit {
+            color: #dc2626;
+            font-weight: 700;
+        }
+
+        .credit {
+            color: #059669;
+            font-weight: 700;
+        }
+
+        .empty {
+            color: #6b7280;
+            text-align: center;
+            padding: 20px;
+        }
+
+        @media (max-width: 640px) {
+            .header h1 {
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Virtual Banking</h1>
+            <p>Secure UPI-Based Fund Transfer System</p>
+        </header>
+
+        <section class="card auth-section active" id="authSection">
+            <h2 class="title">Welcome to Banking System</h2>
+            <div class="alert" id="authAlert"></div>
+
+            <div class="mode-switch">
+                <button class="mode-btn active" id="modeLoginBtn" onclick="switchAuthMode('login')">Login</button>
+                <button class="mode-btn" id="modeRegisterBtn" onclick="switchAuthMode('register')">Register</button>
+            </div>
+
+            <div id="loginForm">
+                <div class="form-group">
+                    <label for="loginEmail">Email</label>
+                    <input class="form-control" id="loginEmail" type="email" placeholder="Enter your email">
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input class="form-control" id="loginPassword" type="password" placeholder="Enter your password">
+                </div>
+                <button class="primary-btn" id="loginSubmitBtn" onclick="handleLogin()" disabled>Login</button>
+            </div>
+
+            <div id="registerForm" style="display: none;">
+                <div class="form-group">
+                    <label for="registerFullName">Full Name</label>
+                    <input class="form-control" id="registerFullName" type="text" placeholder="Enter your full name">
+                </div>
+                <div class="form-group">
+                    <label for="registerEmail">Email</label>
+                    <input class="form-control" id="registerEmail" type="email" placeholder="Enter your email">
+                </div>
+                <div class="form-group">
+                    <label for="registerUpiId">UPI ID (must be unique)</label>
+                    <input class="form-control" id="registerUpiId" type="text" placeholder="e.g., yourname@bank">
+                    <small id="registerUpiStatus" style="display:block; margin-top:6px; color:#6b7280;"></small>
+                </div>
+                <div class="form-group">
+                    <label for="registerPassword">Password</label>
+                    <input class="form-control" id="registerPassword" type="password" placeholder="At least 6 characters">
+                </div>
+                <button class="primary-btn" id="registerSubmitBtn" onclick="handleRegister()" disabled>Create Account</button>
+            </div>
+
+            <div class="demo">
+                <strong>Demo Accounts:</strong><br>
+                alice@example.com / alice123<br>
+                bob@example.com / bob123<br>
+                UPI IDs: alice@bank, bob@bank
+            </div>
+        </section>
+
+        <section class="card dashboard-section" id="dashboardSection">
+            <div class="dashboard-top">
+                <h3>Welcome, <span id="userName">User</span></h3>
+                <p>You are logged in. Account tools are now available.</p>
+                <div class="meta-row">
+                    <div class="meta-box">
+                        <small>UPI ID</small>
+                        <strong id="upiDisplay">-</strong>
+                    </div>
+                    <div class="meta-box">
+                        <small>Balance</small>
+                        <strong id="balanceDisplay">₹0</strong>
+                    </div>
+                    <div class="meta-box">
+                        <small>Email</small>
+                        <strong id="emailDisplay">-</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-nav">
+                <button class="tab-btn active" onclick="switchTab('account', this)">Account</button>
+                <button class="tab-btn" onclick="switchTab('transfer', this)">Send Money</button>
+                <button class="tab-btn" onclick="switchTab('passbook', this)">Passbook</button>
+                <button class="tab-btn danger-btn" onclick="handleLogout()">Logout</button>
+            </div>
+
+            <div class="panel active" id="accountPanel">
+                <p>Your account is active and ready for transfers.</p>
+                <button class="secondary-btn" onclick="refreshBalance()">Refresh Balance</button>
+            </div>
+
+            <div class="panel" id="transferPanel">
+                <h3 class="title">Send Money</h3>
+                <div class="alert" id="transferAlert"></div>
+                <div class="form-group">
+                    <label for="recipientUPI">Recipient UPI ID</label>
+                    <input class="form-control" id="recipientUPI" type="text" placeholder="e.g., alice@bank">
+                </div>
+                <div class="form-group">
+                    <label for="amount">Amount (₹)</label>
+                    <input class="form-control" id="amount" type="number" min="1" step="0.01" placeholder="Enter amount">
+                </div>
+                <div class="form-group">
+                    <label for="description">Description (Optional)</label>
+                    <input class="form-control" id="description" type="text" placeholder="e.g., Payment for groceries">
+                </div>
+                <button class="primary-btn" onclick="handleSendMoney()">Send Money</button>
+            </div>
+
+            <div class="panel" id="passbookPanel">
+                <h3 class="title">Transaction History</h3>
+                <div class="alert" id="passbookAlert"></div>
+                <button class="secondary-btn" onclick="loadPassbook()">Refresh Transactions</button>
+                <button class="secondary-btn" id="downloadStatementBtn" onclick="downloadPassbookStatement()">Download Passbook PDF</button>
+                <div id="passbookContent" class="empty">No transactions yet.</div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCj-n90OFMgbgirIFRY4Icp_cl9tRRUFbo",
+            authDomain: "banking-system-project-38586.firebaseapp.com",
+            databaseURL: "https://banking-system-project-38586-default-rtdb.firebaseio.com",
+            projectId: "banking-system-project-38586",
+            storageBucket: "banking-system-project-38586.firebasestorage.app",
+            messagingSenderId: "1063068373714",
+            appId: "1:1063068373714:web:604489571107182fd4530b",
+            measurementId: "G-YN8CTS0Q6E"
+        };
+
+        let auth;
+        let db;
+        let firebaseReady = false;
+        let currentUser = null;
+        let currentAccount = null;
+        let currentProfile = null;
+        let upiCheckTimer = null;
+        let upiCheckToken = 0;
+        let upiCheckState = {
+            checkedUpi: "",
+            available: false,
+            checked: false
+        };
+
+        function showAlert(alertId, message, type = "error") {
+            const alertEl = document.getElementById(alertId);
+            if (!alertEl) return;
+            alertEl.textContent = message;
+            alertEl.classList.remove("success", "error");
+            alertEl.classList.add(type, "show");
+        }
+
+        function clearAlert(alertId) {
+            const alertEl = document.getElementById(alertId);
+            if (!alertEl) return;
+            alertEl.classList.remove("show");
+            alertEl.textContent = "";
+        }
+
+        function setAuthButtonsEnabled(enabled) {
+            document.getElementById("loginSubmitBtn").disabled = !enabled;
+            document.getElementById("registerSubmitBtn").disabled = !enabled;
+        }
+
+        function switchAuthMode(mode) {
+            const isLogin = mode === "login";
+            document.getElementById("loginForm").style.display = isLogin ? "block" : "none";
+            document.getElementById("registerForm").style.display = isLogin ? "none" : "block";
+            document.getElementById("modeLoginBtn").classList.toggle("active", isLogin);
+            document.getElementById("modeRegisterBtn").classList.toggle("active", !isLogin);
+            clearAlert("authAlert");
+        }
+
+        function showAuthSection() {
+            document.getElementById("authSection").classList.add("active");
+            document.getElementById("dashboardSection").classList.remove("active");
+            switchAuthMode("login");
+        }
+
+        function showDashboard() {
+            document.getElementById("authSection").classList.remove("active");
+            document.getElementById("dashboardSection").classList.add("active");
+            updateProfile();
+            switchTab("account");
+        }
+
+        function switchTab(tabName, clickedButton = null) {
+            document.querySelectorAll(".panel").forEach((panel) => panel.classList.remove("active"));
+            document.querySelectorAll(".tab-btn").forEach((btn) => btn.classList.remove("active"));
+
+            if (tabName === "account") {
+                document.getElementById("accountPanel").classList.add("active");
+            } else if (tabName === "transfer") {
+                document.getElementById("transferPanel").classList.add("active");
+            } else if (tabName === "passbook") {
+                document.getElementById("passbookPanel").classList.add("active");
+                loadPassbook();
+            }
+
+            if (clickedButton) {
+                clickedButton.classList.add("active");
+            } else {
+                const buttonMap = {
+                    account: 0,
+                    transfer: 1,
+                    passbook: 2
+                };
+                const tabButtons = document.querySelectorAll(".dashboard-nav .tab-btn");
+                const idx = buttonMap[tabName];
+                if (tabButtons[idx]) tabButtons[idx].classList.add("active");
+            }
+        }
+
+        function updateProfile() {
+            if (!currentUser || !currentAccount) return;
+            const name = (currentProfile && currentProfile.fullName) || currentUser.email.split("@")[0];
+            document.getElementById("userName").textContent = name;
+            document.getElementById("upiDisplay").textContent = currentAccount.upiId || "-";
+            document.getElementById("emailDisplay").textContent = currentUser.email || "-";
+            document.getElementById("balanceDisplay").textContent = `₹${Number(currentAccount.balance || 0).toLocaleString("en-IN")}`;
+        }
+
+        async function ensureDemoAccounts() {
+            const demoUsers = [
+                { email: "alice@example.com", password: "alice123", fullName: "Alice Johnson", upiId: "alice@bank", balance: 5000 },
+                { email: "bob@example.com", password: "bob123", fullName: "Bob Smith", upiId: "bob@bank", balance: 5000 }
+            ];
+
+            for (const demo of demoUsers) {
+                let authUser = null;
+
+                try {
+                    const signInResult = await auth.signInWithEmailAndPassword(demo.email, demo.password);
+                    authUser = signInResult.user;
+                } catch (signInError) {
+                    if (signInError.code === "auth/invalid-login-credentials" || signInError.code === "auth/user-not-found") {
+                        try {
+                            const createResult = await auth.createUserWithEmailAndPassword(demo.email, demo.password);
+                            authUser = createResult.user;
+                        } catch (createError) {
+                            if (createError.code === "auth/email-already-in-use") {
+                                continue;
+                            }
+                            continue;
+                        }
+                    } else {
+                        continue;
+                    }
+                }
+
+                if (!authUser) continue;
+
+                const userRef = db.ref(`users/${authUser.uid}`);
+                const accountRef = db.ref(`accounts/${authUser.uid}`);
+                const [userSnapshot, accountSnapshot] = await Promise.all([userRef.once("value"), accountRef.once("value")]);
+
+                if (!userSnapshot.exists()) {
+                    await userRef.set({
+                        email: demo.email,
+                        fullName: demo.fullName,
+                        upiId: demo.upiId,
+                        createdAt: firebase.database.ServerValue.TIMESTAMP
+                    });
+                }
+
+                if (!accountSnapshot.exists()) {
+                    await accountRef.set({
+                        userId: authUser.uid,
+                        upiId: demo.upiId,
+                        balance: demo.balance,
+                        createdAt: firebase.database.ServerValue.TIMESTAMP
+                    });
+                }
+            }
+        }
+
+        async function initializeFirebase() {
+            try {
+                if (typeof firebase === "undefined") {
+                    throw new Error("Firebase SDK did not load. Check internet/CDN access.");
+                }
+
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+
+                auth = firebase.auth();
+                db = firebase.database();
+                try {
+                    await ensureDemoAccounts();
+                } catch (demoError) {
+                    console.warn("Demo account bootstrap skipped:", demoError.message);
+                }
+
+                // Force auth-first flow on every page load.
+                await auth.signOut();
+
+                firebaseReady = true;
+                setAuthButtonsEnabled(true);
+                showAuthSection();
+            } catch (error) {
+                showAlert("authAlert", `Firebase init failed: ${error.message}`, "error");
+            }
+        }
+
+        async function loadAccountData(userId) {
+            const [accountSnapshot, profileSnapshot] = await Promise.all([
+                db.ref(`accounts/${userId}`).once("value"),
+                db.ref(`users/${userId}`).once("value")
+            ]);
+            currentAccount = accountSnapshot.val();
+            currentProfile = profileSnapshot.val();
+            if (!currentAccount) {
+                throw new Error("Account record not found for this user.");
+            }
+        }
+
+        function mapAuthError(error) {
+            const code = error && error.code ? String(error.code).toLowerCase() : "";
+            const message = error && error.message ? String(error.message).toLowerCase() : "";
+
+            if (code.includes("permission_denied") || message.includes("permission_denied")) {
+                return "Database permission denied. Update Firebase rules for /users, /accounts, /transactions and /upi_registry.";
+            }
+            if (!error || !error.code) return error && error.message ? error.message : "Authentication failed.";
+            if (error.code === "auth/operation-not-allowed") {
+                return "Email/Password sign-in is disabled. Enable it in Firebase Console > Authentication > Sign-in method.";
+            }
+            if (error.code === "auth/invalid-login-credentials") return "Invalid email/password. Use Register first or use the demo credentials exactly.";
+            if (error.code === "auth/user-not-found") return "User not found.";
+            if (error.code === "auth/wrong-password") return "Incorrect password.";
+            if (error.code === "auth/email-already-in-use") return "Email is already registered.";
+            return error.message;
+        }
+
+        function normalizeUpiId(rawUpiId) {
+            return String(rawUpiId || "").trim().toLowerCase().replace(/\s+/g, "");
+        }
+
+        function isValidUpiId(upiId) {
+            return /^[a-z0-9._-]{3,}@[a-z0-9.-]{2,}$/i.test(upiId);
+        }
+
+        function toUpiRegistryKey(upiId) {
+            return normalizeUpiId(upiId).replace(/\./g, ",");
+        }
+
+        function setUpiStatus(message, type = "neutral") {
+            const statusEl = document.getElementById("registerUpiStatus");
+            if (!statusEl) return;
+
+            statusEl.textContent = message || "";
+            if (!message) {
+                statusEl.style.color = "#6b7280";
+                return;
+            }
+
+            if (type === "success") {
+                statusEl.style.color = "#065f46";
+            } else if (type === "error") {
+                statusEl.style.color = "#b91c1c";
+            } else if (type === "warning") {
+                statusEl.style.color = "#92400e";
+            } else {
+                statusEl.style.color = "#374151";
+            }
+        }
+
+        async function checkUpiAvailabilityLive() {
+            const inputEl = document.getElementById("registerUpiId");
+            if (!inputEl || !db) return;
+
+            const upiId = normalizeUpiId(inputEl.value);
+            upiCheckState = { checkedUpi: "", available: false, checked: false };
+
+            if (!upiId) {
+                setUpiStatus("");
+                return;
+            }
+
+            if (!isValidUpiId(upiId)) {
+                setUpiStatus("Use format like yourname@bank", "warning");
+                return;
+            }
+
+            const token = ++upiCheckToken;
+            setUpiStatus("Checking UPI availability...", "neutral");
+
+            try {
+                const snapshot = await db.ref(`upi_registry/${toUpiRegistryKey(upiId)}`)
+                    .once("value");
+
+                if (token !== upiCheckToken) return;
+
+                const available = !snapshot.exists();
+                upiCheckState = { checkedUpi: upiId, available, checked: true };
+
+                if (available) {
+                    setUpiStatus("UPI ID is available", "success");
+                } else {
+                    setUpiStatus("UPI ID already taken", "error");
+                }
+            } catch (error) {
+                if (token !== upiCheckToken) return;
+                upiCheckState = { checkedUpi: upiId, available: false, checked: false };
+                if (String(error.message || "").toLowerCase().includes("permission_denied")) {
+                    setUpiStatus("Live check blocked by current database rules. We will verify during register.", "warning");
+                } else {
+                    setUpiStatus("Could not verify UPI right now. We will verify during register.", "warning");
+                }
+            }
+        }
+
+        function setupUpiLiveValidation() {
+            const inputEl = document.getElementById("registerUpiId");
+            if (!inputEl) return;
+
+            inputEl.addEventListener("input", () => {
+                const normalized = normalizeUpiId(inputEl.value);
+                if (normalized !== inputEl.value) {
+                    inputEl.value = normalized;
+                }
+
+                if (upiCheckTimer) {
+                    clearTimeout(upiCheckTimer);
+                }
+                upiCheckTimer = setTimeout(() => {
+                    checkUpiAvailabilityLive();
+                }, 350);
+            });
+        }
+
+        async function handleLogin() {
+            clearAlert("authAlert");
+            if (!firebaseReady) {
+                showAlert("authAlert", "Firebase is still loading, please wait...", "error");
+                return;
+            }
+
+            const email = document.getElementById("loginEmail").value.trim();
+            const password = document.getElementById("loginPassword").value.trim();
+            if (!email || !password) {
+                showAlert("authAlert", "Please enter email and password.", "error");
+                return;
+            }
+
+            try {
+                const result = await auth.signInWithEmailAndPassword(email, password);
+                currentUser = result.user;
+                await loadAccountData(currentUser.uid);
+                showDashboard();
+                showAlert("authAlert", "Login successful.", "success");
+            } catch (error) {
+                try {
+                    if (currentUser && currentUser.uid) {
+                        const accountSnapshot = await db.ref(`accounts/${currentUser.uid}`).once("value");
+                        if (!accountSnapshot.exists()) {
+                            await db.ref(`upi_registry/${toUpiRegistryKey(upiId)}`).remove();
+                            await currentUser.delete();
+                        }
+                    }
+                } catch (cleanupError) {
+                    console.warn("Register cleanup failed:", cleanupError.message);
+                }
+                showAlert("authAlert", mapAuthError(error), "error");
+            }
+        }
+
+        async function handleRegister() {
+            clearAlert("authAlert");
+            if (!firebaseReady) {
+                showAlert("authAlert", "Firebase is still loading, please wait...", "error");
+                return;
+            }
+
+            const fullName = document.getElementById("registerFullName").value.trim();
+            const email = document.getElementById("registerEmail").value.trim();
+            const upiId = normalizeUpiId(document.getElementById("registerUpiId").value);
+            const password = document.getElementById("registerPassword").value.trim();
+
+            if (!fullName || !email || !password || !upiId) {
+                showAlert("authAlert", "Please fill all registration fields.", "error");
+                return;
+            }
+            if (password.length < 6) {
+                showAlert("authAlert", "Password must be at least 6 characters.", "error");
+                return;
+            }
+            if (!isValidUpiId(upiId)) {
+                showAlert("authAlert", "Please enter a valid UPI ID (example: yourname@bank).", "error");
+                return;
+            }
+
+            try {
+                if (upiCheckState.checked && upiCheckState.checkedUpi === upiId && !upiCheckState.available) {
+                    showAlert("authAlert", "This UPI ID is already taken. Please choose another one.", "error");
+                    return;
+                }
+
+                const result = await auth.createUserWithEmailAndPassword(email, password);
+                currentUser = result.user;
+
+                const upiRegistryRef = db.ref(`upi_registry/${toUpiRegistryKey(upiId)}`);
+                const claimResult = await upiRegistryRef.transaction((currentValue) => {
+                    if (currentValue === null) {
+                        return currentUser.uid;
+                    }
+                    if (currentValue === currentUser.uid) {
+                        return currentValue;
+                    }
+                    return;
+                });
+
+                if (!claimResult.committed) {
+                    await currentUser.delete();
+                    showAlert("authAlert", "This UPI ID is already taken. Please choose another one.", "error");
+                    return;
+                }
+
+                await db.ref(`users/${currentUser.uid}`).set({
+                    email,
+                    fullName,
+                    upiId,
+                    createdAt: firebase.database.ServerValue.TIMESTAMP
+                });
+
+                await db.ref(`accounts/${currentUser.uid}`).set({
+                    userId: currentUser.uid,
+                    upiId,
+                    balance: 5000,
+                    createdAt: firebase.database.ServerValue.TIMESTAMP
+                });
+
+                await loadAccountData(currentUser.uid);
+                showDashboard();
+                showAlert("authAlert", "Registration successful.", "success");
+            } catch (error) {
+                showAlert("authAlert", mapAuthError(error), "error");
+            }
+        }
+
+        async function refreshBalance() {
+            if (!currentUser) return;
+            await loadAccountData(currentUser.uid);
+            updateProfile();
+        }
+
+        async function handleSendMoney() {
+            clearAlert("transferAlert");
+            if (!currentUser || !currentAccount) {
+                showAlert("transferAlert", "Please login first.", "error");
+                return;
+            }
+
+            const toUPI = document.getElementById("recipientUPI").value.trim();
+            const amount = parseFloat(document.getElementById("amount").value);
+            const description = document.getElementById("description").value.trim();
+
+            if (!toUPI || Number.isNaN(amount) || amount <= 0) {
+                showAlert("transferAlert", "Please enter valid recipient UPI and amount.", "error");
+                return;
+            }
+            if (amount > Number(currentAccount.balance || 0)) {
+                showAlert("transferAlert", "Insufficient balance.", "error");
+                return;
+            }
+
+            try {
+                const recipientSnapshot = await db.ref("accounts")
+                    .orderByChild("upiId")
+                    .equalTo(toUPI)
+                    .once("value");
+
+                if (!recipientSnapshot.exists()) {
+                    showAlert("transferAlert", "Recipient UPI not found.", "error");
+                    return;
+                }
+
+                const recipientId = Object.keys(recipientSnapshot.val())[0];
+                const recipientData = recipientSnapshot.val()[recipientId];
+
+                if (recipientId === currentUser.uid) {
+                    showAlert("transferAlert", "Cannot transfer to yourself.", "error");
+                    return;
+                }
+
+                const transactionRef = db.ref("transactions").push();
+                const transactionTimestamp = Date.now();
+
+                await transactionRef.set({
+                    fromAccount: currentUser.uid,
+                    toAccount: recipientId,
+                    amount,
+                    description: description || "Payment",
+                    status: "completed",
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                });
+
+                await db.ref(`accounts/${currentUser.uid}`).update({
+                    balance: Number(currentAccount.balance) - amount
+                });
+
+                await db.ref(`accounts/${recipientId}`).update({
+                    balance: Number(recipientData.balance) + amount
+                });
+
+                try {
+                    if (typeof window.sendTransactionEmail === "function") {
+                        const recipientUserSnapshot = await db.ref(`users/${recipientId}`).once("value");
+                        const recipientProfile = recipientUserSnapshot.exists() ? recipientUserSnapshot.val() : null;
+                        const senderEmail = currentUser.email;
+                        const recipientEmail = recipientProfile && recipientProfile.email ? recipientProfile.email : null;
+
+                        const emailJobs = [];
+                        if (senderEmail) {
+                            emailJobs.push(window.sendTransactionEmail(senderEmail, {
+                                type: "debit",
+                                amount,
+                                timestamp: transactionTimestamp,
+                                description: description || "Payment",
+                                referenceId: transactionRef.key,
+                                counterpartyUpi: toUPI
+                            }));
+                        }
+
+                        if (recipientEmail) {
+                            emailJobs.push(window.sendTransactionEmail(recipientEmail, {
+                                type: "credit",
+                                amount,
+                                timestamp: transactionTimestamp,
+                                description: description || "Payment",
+                                referenceId: transactionRef.key,
+                                counterpartyUpi: currentAccount.upiId || "-"
+                            }));
+                        }
+
+                        await Promise.allSettled(emailJobs);
+                    }
+                } catch (emailError) {
+                    console.warn("Email notification failed:", emailError.message);
+                }
+
+                currentAccount.balance = Number(currentAccount.balance) - amount;
+                updateProfile();
+                showAlert("transferAlert", `Sent ₹${amount} to ${toUPI}.`, "success");
+
+                document.getElementById("recipientUPI").value = "";
+                document.getElementById("amount").value = "";
+                document.getElementById("description").value = "";
+            } catch (error) {
+                showAlert("transferAlert", `Transfer failed: ${error.message}`, "error");
+            }
+        }
+
+        async function loadPassbook() {
+            const content = document.getElementById("passbookContent");
+            if (!currentUser) {
+                content.innerHTML = '<div class="empty">Please login first.</div>';
+                return;
+            }
+
+            content.innerHTML = '<div class="empty">Loading transactions...</div>';
+
+            try {
+                const [transactionsSnapshot, accountsSnapshot] = await Promise.all([
+                    db.ref("transactions").once("value"),
+                    db.ref("accounts").once("value")
+                ]);
+
+                const accountsById = accountsSnapshot.exists() ? accountsSnapshot.val() : {};
+
+                const snapshot = transactionsSnapshot;
+                if (!snapshot.exists()) {
+                    content.innerHTML = '<div class="empty">No transactions yet.</div>';
+                    return;
+                }
+
+                const transactions = [];
+                snapshot.forEach((item) => {
+                    const transaction = item.val();
+                    if (transaction.fromAccount === currentUser.uid || transaction.toAccount === currentUser.uid) {
+                        transactions.push({
+                            id: item.key,
+                            ...transaction
+                        });
+                    }
+                });
+
+                if (transactions.length === 0) {
+                    content.innerHTML = '<div class="empty">No transactions yet.</div>';
+                    return;
+                }
+
+                transactions.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+                let tableHtml = `
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                    <th>From / To</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                transactions.forEach((transaction) => {
+                    const debit = transaction.fromAccount === currentUser.uid;
+                    const type = debit ? "Sent" : "Received";
+                    const typeClass = debit ? "debit" : "credit";
+                    const amountLabel = `₹${Number(transaction.amount || 0).toLocaleString("en-IN")}`;
+                    const dateLabel = transaction.timestamp ? new Date(transaction.timestamp).toLocaleString() : "-";
+                    const counterpartyId = debit ? transaction.toAccount : transaction.fromAccount;
+                    const counterpartyAccount = counterpartyId ? accountsById[counterpartyId] : null;
+                    const counterpartyUpi = counterpartyAccount && counterpartyAccount.upiId
+                        ? counterpartyAccount.upiId
+                        : (counterpartyId ? `Account ${counterpartyId.substring(0, 8)}...` : "-");
+                    const partyLabel = debit ? `To ${counterpartyUpi}` : `From ${counterpartyUpi}`;
+
+                    tableHtml += `
+                        <tr>
+                            <td>${dateLabel}</td>
+                            <td><span class="${typeClass}">${type}</span></td>
+                            <td class="${typeClass}">${amountLabel}</td>
+                            <td>${partyLabel}</td>
+                            <td>${transaction.description || "-"}</td>
+                        </tr>
+                    `;
+                });
+
+                tableHtml += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                content.innerHTML = tableHtml;
+            } catch (error) {
+                content.innerHTML = `<div class="empty">Could not load passbook: ${error.message}</div>`;
+            }
+        }
+
+        async function downloadPassbookStatement() {
+            clearAlert("passbookAlert");
+
+            if (!currentUser) {
+                showAlert("passbookAlert", "Please login first.", "error");
+                return;
+            }
+
+            if (typeof html2canvas === "undefined" || typeof window.jspdf === "undefined") {
+                showAlert("passbookAlert", "PDF libraries are not loaded. Refresh the page and try again.", "error");
+                return;
+            }
+
+            const button = document.getElementById("downloadStatementBtn");
+            const passbookPanel = document.getElementById("passbookPanel");
+
+            if (!button || !passbookPanel) {
+                showAlert("passbookAlert", "Passbook screen is not available right now.", "error");
+                return;
+            }
+
+            try {
+                button.disabled = true;
+                button.textContent = "Generating PDF...";
+
+                await loadPassbook();
+                await new Promise((resolve) => setTimeout(resolve, 100));
+
+                const captureTarget = document.getElementById("passbookContent");
+                if (!captureTarget) {
+                    throw new Error("Passbook data is not available.");
+                }
+
+                button.textContent = "Capturing passbook...";
+
+                const canvas = await html2canvas(captureTarget, {
+                    scale: 1.25,
+                    useCORS: true,
+                    backgroundColor: "#ffffff",
+                    windowWidth: captureTarget.scrollWidth,
+                    windowHeight: captureTarget.scrollHeight
+                });
+
+                button.textContent = "Building PDF...";
+
+                const imageData = canvas.toDataURL("image/jpeg", 0.82);
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: "p",
+                    unit: "mm",
+                    format: "a4",
+                    compress: true
+                });
+
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                const margin = 8;
+                const imgWidth = pageWidth - (margin * 2);
+                const headerHeight = 16;
+                const usablePageHeight = pageHeight - (margin * 2) - headerHeight;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+                const generatedOn = new Date().toLocaleString();
+                pdf.setFontSize(12);
+                pdf.text("SecureBank Passbook Statement", margin, margin + 5);
+                pdf.setFontSize(9);
+                pdf.text(`Generated: ${generatedOn}`, margin, margin + 10);
+
+                let heightLeft = imgHeight;
+                let position = margin + headerHeight;
+
+                pdf.addImage(imageData, "JPEG", margin, position, imgWidth, imgHeight, undefined, "FAST");
+                heightLeft -= usablePageHeight;
+
+                while (heightLeft > 0) {
+                    position = (margin + headerHeight) - (imgHeight - heightLeft);
+                    pdf.addPage();
+                    pdf.setFontSize(9);
+                    pdf.text(`Generated: ${generatedOn}`, margin, margin + 10);
+                    pdf.addImage(imageData, "JPEG", margin, position, imgWidth, imgHeight, undefined, "FAST");
+                    heightLeft -= usablePageHeight;
+                }
+
+                const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+                const shortUid = currentUser.uid.substring(0, 8);
+                const fileName = `passbook-${shortUid}-${stamp}.pdf`;
+                const pdfBlob = pdf.output("blob");
+
+                button.textContent = "Downloading...";
+
+                const localUrl = URL.createObjectURL(pdfBlob);
+                const link = document.createElement("a");
+                link.href = localUrl;
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                URL.revokeObjectURL(localUrl);
+
+                showAlert("passbookAlert", `Statement downloaded successfully. File: ${fileName}`, "success");
+            } catch (error) {
+                showAlert("passbookAlert", `Could not create statement PDF: ${error.message}`, "error");
+            } finally {
+                button.disabled = false;
+                button.textContent = "Download Passbook PDF";
+            }
+        }
+
+        async function handleLogout() {
+            try {
+                if (auth) {
+                    await auth.signOut();
+                }
+            } finally {
+                currentUser = null;
+                currentAccount = null;
+                currentProfile = null;
+                document.getElementById("passbookContent").innerHTML = '<div class="empty">No transactions yet.</div>';
+                clearAlert("transferAlert");
+                clearAlert("passbookAlert");
+                showAuthSection();
+            }
+        }
+
+        window.addEventListener("load", () => {
+            setupUpiLiveValidation();
+            initializeFirebase();
+        });
+    </script>
+</body>
+</html>

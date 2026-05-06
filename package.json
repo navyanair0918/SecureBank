@@ -1,0 +1,19 @@
+{
+  "name": "securebank-firebase",
+  "version": "1.0.0",
+  "description": "Virtual Banking System with Firebase",
+  "main": "index.html",
+  "scripts": {
+    "dev": "python -m http.server 8000",
+    "build": "echo 'Static site - no build needed'",
+    "deploy": "vercel --prod"
+  },
+  "keywords": ["banking", "firebase", "upi", "payments"],
+  "author": "SecureBank",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {},
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
